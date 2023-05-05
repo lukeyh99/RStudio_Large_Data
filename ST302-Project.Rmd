@@ -1,0 +1,92 @@
+---
+title: "ST302-Project"
+output: html_document
+date: '2022-03-31'
+---
+Part 1
+--
+Introduction:
+--
+Data Description: We were presented with the data set which displayed every FA cup result since 2010 it included variables for venue, who was playing at home or away , the date and season at which the game took place , the final score in each game and the away goals compared to the visitors goals,which round it was in , and other such as did it go to extra time or was there penalties throughout the game, there were variables to determine the attendance at each game and what venue the game was played in.
+
+Research Questions: Was there a overall advantage or disadvantage when a team was playing away from home?#
+
+Part 2
+--
+Data Adjustments: I did have to make adjustments to my data in order to validate my research question, the adjustments i made to the data included removing unnecessary variables such as venue , penalties , attendance , round etc as these variables added no affect to the question that was posed , it was all jsut clutter in the data essentially , next thing to do was to create a new variable that determined whether or not or not the home team won or lost and another to determine whether or not the visiting team won or not. This additon of a variable aided in getting a greater understanding for the data and gives a clearer indication on whether a team has had a good season or not. 
+
+
+```{r}
+library(dplyr)
+library(tidyverse)
+load("facup.Rdata")
+data <- facup2010
+
+#liverpool home results by round
+data %>% filter(home == "Liverpool" ) %>% ggplot(aes(x = FT , y = visitor , col = round)) + geom_point() +ggtitle("Liverpool home results")
+
+#Evertons away games victories in 2011
+data %>% filter(visitor == "Everton" ) %>% ggplot(aes(x = FT , y = home , col = round)) + geom_point() +ggtitle("Evertons away victories by season")
+```
+
+
+```{r}
+library(ggrepel)
+data %>% filter( visitor == "Everton",  Season == 2015 ) %>% ggplot( aes(x=FT, y=Date , fill = round)) + 
+  geom_point()
+ 
+
+p1 <- data %>%
+  # remove unplayed games
+  filter(!is.na(hgoal) , Season == 2011 , home %in% c("Liverpool" , "Chelsea")  ) %>%
+  ggplot(., aes(x = visitor, y = home, fill = hgoal-vgoal)) +
+  geom_tile()+
+  # add the scorelines
+  geom_label(aes(label = paste(hgoal, vgoal, sep = "-")), fill = "white") +  
+  # colour where green shows home win and red an away win
+  scale_fill_gradient2(low = "darkred", high = "green", midpoint = 0, guide = "none") +
+  scale_x_discrete(limits = levels(data$home), position = "top") +
+  scale_y_discrete(limits = rev(levels(data$visitor))) +
+  theme_minimal()
+# plot
+p1
+```
+
+
+```{r}
+data <- facup2010
+Liverpool <- data %>% filter((visitor %in% "Liverpool")|(home %in% "Liverpool"))
+Liverpool <- Liverpool %>% mutate(LPHomeOrAway = ifelse(home == "Liverpool" , "home" , "away"))
+Liverpool <- subset(Liverpool , select = -c(9:19))
+
+#Liverpool <- Liverpool %>%  mutate(LiverpoolResults = ifelse((hgoal-vgoal)==0 , "draw" ,ifelse(LPHomeOrAway %in% "home" & (hgoal - vgoal) > 0 , "win" , ifelse(LPHomeOrAway %in% "away" & (hgoal - vgoal) < 0 , "win" ,"loss" ))))
+
+Liverpool <- Liverpool %>%  mutate(LiverpoolResults = ifelse(LPHomeOrAway %in% "home" & (hgoal - vgoal) > 0 , "win" , ifelse(LPHomeOrAway %in% "away" & (hgoal - vgoal) < 0 , "win" ,"loss" )))
+
+
+
+Liverpool <- Liverpool %>%  mutate(LiverpoolResults = ifelse(LPHomeOrAway %in% "home" , ifelse((hgoal - vgoal) == 0,"draw",ifelse((hgoal-vgoal) > 0  , "win" , "loss"))  , ifelse(LPHomeOrAway %in% "away" , ifelse((vgoal - hgoal) == 0,"draw",ifelse((vgoal-hgoal) > 0  , "win" , "loss")))))
+
+
+
+#Liverpool <- Liverpool  %>% mutate(LiverpoolAResults = ifelse((vgoal - hgoal) == 0,"draw",ifelse((vgoal-hgoal) > 0  , "win" , "loss" ) ))
+#Liverpool <- Liverpool %>% mutate(VisitingTeamResults =  ifelse((vgoal - hgoal) == 0,"draw",ifelse((hgoal-vgoal) > 0  , "win" , "loss")))                        
+
+
+#view(Liverpool)
+
+Liverpool %>% ggplot(aes(x = Season , fill = LiverpoolResults) )+ geom_bar(position = position_dodge() , width = 0.7 ) + theme(axis.text.x = element_text(angle = 45, size = 8 )) + labs(title = "Liverpools FA Cup Record" )
+
+
+
+```
+```{r}
+library(patchwork)
+Data2 <- facup2010
+Data2 <- Data2 %>%  group_by(home) %>% mutate(HomeResults = ifelse((hgoal - vgoal) > 0 , "win"  , ifelse((hgoal - vgoal) == 0,"draw","loss" )))
+Data2 <- Data2 %>%  group_by(visitor) %>% mutate(AwayResults = ifelse((vgoal - hgoal) > 0 , "win"  , ifelse((vgoal - hgoal) == 0,"draw","loss" )))
+Data2 <- subset(Data2 , select = -c(9:19))
+(ggplot(Data2 , aes(x = HomeResults , fill = HomeResults  ))+geom_bar() + labs(title = "HomeResults") )+( ggplot(Data2 ,aes(x = AwayResults , fill = AwayResults  ))+geom_bar() + labs(title = "AwayResults"))
+ 
+```
+

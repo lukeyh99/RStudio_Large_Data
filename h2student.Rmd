@@ -1,0 +1,110 @@
+---
+title: "Assignment 2 ST302"
+author: "your name"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F, warning=F)
+
+
+```
+
+
+
+```{r}
+library(vcd)
+library(ggmosaic)
+library(tidyverse)
+library(vcdExtra)
+library(effects)
+```
+
+
+## Question 1. 
+```{r}
+df <- data.frame(as.table(MSPatients))
+```
+
+a.The new orleans neurologist has quite an even distribution compared to the winnipeg neurologist whose distriution is skewed to the right slightly, the geom that is used in this case is geom_bar() 
+
+
+b. geom_bar() , geom_mosaic(), the winnipeg ratings are overall higher than the new orleans ratings the they are more evenly distributed through the whole graph
+
+
+## Question 2
+
+```{r}
+p1 <-df %>% pivot_longer(c(New.Orleans.Neurologist, Winnipeg.Neurologist), names_to = "City" , values_to = "Rating") %>%
+  ggplot( aes(x = Rating , y = Freq)) + geom_col() + facet_wrap(vars(City))
+p1
+
+ggplot(data = df, aes(x = Winnipeg.Neurologist, y = Freq , fill  = New.Orleans.Neurologist)) + geom_col()
+
+ggplot(df) + geom_mosaic(aes(x = product(New.Orleans.Neurologist,Winnipeg.Neurologist) , fill = New.Orleans.Neurologist , weight = Freq)) 
+
+d2 <- as_tibble(df)%>%
+  group_by(Winnipeg.Neurologist,New.Orleans.Neurologist) %>% tally(Freq) %>% mutate(prop = n/sum(n)) 
+d2
+```
+
+## Question 3
+
+a.Unite pastes together multiple columns into one , generates a single data frame as output after merging the specified columns.
+
+
+```{r}
+TitanicSurvival %>% group_by(survived,passengerClass,sex) %>% 
+  summarize(age=mean(age, na.rm=T)) %>%
+  unite(survived, passengerClass, sex, col="group", remove = FALSE) -> age
+
+
+```
+
+
+b.
+
+```{r}
+age %>% group_by(group) %>% summarize(m_age = mean(age)) %>% ggplot(aes(x = m_age , y = reorder(group , m_age) , colour = group)) + geom_pointrange(xmin = 0 , aes(xmax = m_age)) 
+```
+
+
+c. We learn that a lot of young 2nd class males survived , theres also a lot of outliers in the 3rd class male deaths which is most likely due to most of them being to old to try and survive on their own
+
+```{r}
+
+TitanicSurvival %>% unite(sex , passengerClass ,sep = "_"  , col = "gender.class") %>% ggplot(aes(x = age , y = gender.class  , fill = survived)) + geom_boxplot()
+
+
+```
+
+
+## Question 4
+
+```{r}
+source("http://www.openintro.org/stat/data/cdc.R")
+```
+a.
+
+```{r}
+ggplot(cdc , aes(x = height , y = weight)) + geom_point()
+```
+
+b.
+```{r}
+ggplot(cdc , aes(x = height , y = weight)) + geom_point(aes(size = .1 , alpha = .5)) + geom_jitter()
+
+```
+
+c.
+```{r}
+p3 <- ggplot(cdc , aes(x = height , y = weight)) + geom_point(aes()) + geom_bin2d() +  geom_hex() + scale_fill_gradient(low = "green", high = "black", na.value = NA)
+p3
+```
+
+d.
+```{r}
+p3 + geom_density_2d()
+#yes the outliers are evident in this situation as there is a clear dark area seen in the gradient plot and the 2d density estimation shows us how close the lines are together indicating a very high concentration of points here , thus the outliers are evident
+```

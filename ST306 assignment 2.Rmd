@@ -1,0 +1,122 @@
+---
+title: "Assignment 2"
+output: pdf_document
+date: '2022-03-11'
+---
+
+---
+title: "ST306 assignment 2"
+output: pdf
+date: '2022-02-28'
+format: 'rmarkdown'
+---
+Q1:
+(a) True, the normally distributed residuals reveal that there is no trending or seasonal information in the data
+which has not been explained by the forecasting model
+(b) False , may be a good forecasting model but not always true , a good forecast needs to have residuals 
+of zero mean , constant variance and follow a normal distribution.
+(c) False , there is no best measure for forecasting accuracy 
+(d) False , more complex model does not ensure a more accurate model, if a model dosent work well we should first identify why it doesnt and go from there.
+(e) True , the objective of a model is to make correct forcasting for new data.
+
+Q2:
+```{r}
+library(fpp3)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(tsibble)
+library(tsibbledata)
+library(stringr)
+library(insight)
+library(seasonal)
+library(tinytex===)
+set.seed(12357695)
+myseries <- aus_retail %>%
+  filter(`Series ID` == sample(aus_retail$`Series ID`,1))
+
+
+```
+(a)
+```{r}
+myseries_train <- myseries %>% as_tsibble() %>%
+  filter(year(Month) < 2011)
+
+ 
+```
+(b)
+```{r}
+library(forecast)
+library(ggplot2)
+autoplot(myseries, Turnover) +
+  autolayer(myseries_train, Turnover, colour = "red")
+
+ 
+```
+(c)
+```{r}
+
+
+fit <- myseries_train %>% 
+  model(SNAIVE(Turnover))
+  
+  
+```
+
+(d)
+```{r}
+fit %>% gg_tsresiduals()
+```
+(e)
+```{r}
+fc <- fit %>%
+  forecast(new_data = anti_join(myseries, myseries_train))
+fc %>% autoplot(myseries)
+```
+(f)
+```{r}
+fit %>% accuracy()
+fc %>% accuracy(myseries)
+```
+(g)
+The training data was split from the tail of the data and thus the accuracy measures are highly sensitive to the training /test split , given that there is significant grows in the trend and variability of the data.
+Q3
+(a)
+```{r}
+
+autoplot(canadian_gas)
+gg_subseries(canadian_gas)
+gg_season(canadian_gas)
+```
+(b)
+```{r}
+fit_stl <- stl(canadian_gas, s.window = 13, robust = TRUE)
+autoplot(fit_stl) + xlab("Month") + ggtitle("STL Decomposition of Canadian Gas Production")
+
+
+```
+
+(c)
+The seasonal shape starts off narrow and then as it gets closer to the 1990s the variance increases and takes a  trumpet shape and then as it moves towards the 2000s is slowly narrows and the variance decreases.
+
+(d)
+```{r}
+autoplot(canadian_gas, series="Data") +
+  autolayer(trendcycle(fit_stl), series="Trend") +
+  autolayer(seasadj(fit_stl), series="Seasonally Adjusted") +
+  xlab("Year") + ylab("New orders index") +
+  ggtitle("STL Decomposition of Canadian Gas Production") +
+  scale_colour_manual(values=c("gray","blue","red"),
+             breaks=c("Data","Seasonally Adjusted","Trend"))
+```
+(e)
+```{r}
+
+
+fit_seats <- canadian_gas %>% model(X_13ARIMA_SEATS(Volume ~ seats()))
+#p1 <- autoplot(fit_seats)
+fit_x11 <- canadian_gas %>% model(X_13ARIMA_SEATS(Volume ~ x11()))
+
+```
+
+

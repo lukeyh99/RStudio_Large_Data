@@ -1,0 +1,118 @@
+---
+title: "Assignment 3 ST302"
+author: "Luke Hartnett"
+date: "21/03/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=F, warning=F)
+
+
+```
+
+
+
+```{r}
+ #install.packages(c("RColorBrewer", "gapminder", "ggrepel", "colorspace", "ISLR2"))
+library(tidyverse)
+library(gapminder)
+library(ggrepel)
+library(colorspace)
+library(ISLR2)
+```
+
+
+## Question 1. 
+a.
+No as the colours are very similar in the graph on the right they are almost indistinguishable
+
+
+b.
+```{r,  out.width="50%", fig.width=8, fig.show="hold"}
+#cvd_emulator(here::here("hwk", "figs", "q1b.png"), overwrite=TRUE)
+#knitr::include_graphics(here::here("hwk", "figs", "q1b.png"))
+#knitr::include_graphics(here::here("hwk", "figs", "deutan_q1b.png"))
+p <- ggplot(data=Bikeshare, aes(x=registered, y=casual))
+
+p +  
+  geom_bin2d() +
+  scale_fill_gradient(low = "yellow", high = "red" ,trans="log10")
+
+```
+This plot does not work because the yellow and green has such a little contrast that its very hard to distinguish between the two colours even if you were not colour blind
+
+
+
+
+## Question 2
+
+a. 
+```{r, fig.width=5, fig.height=4}
+gapminder %>% filter(year == 2007) %>% ggplot(aes(x = gdpPercap , y = lifeExp)) + geom_point(colour = "red") 
+```
+
+b.
+```{r, fig.width=5, fig.height=4}
+subset <- filter(gapminder , year== 2007 ,  gdpPercap >= 9000 , lifeExp >= 45 , lifeExp <= 60 ) 
+ gapminder %>% filter(year == 2007) %>% ggplot(aes(x=gdpPercap, y=lifeExp)) +  geom_point() + geom_text_repel(data=subset, aes(label=country))
+
+
+```
+They all belong to Africa , they all have a very low life expectancy but a higher than normal gdp for that area
+
+
+c. 
+
+```{r, fig.width=5, fig.height=4}
+gapminder %>% filter(year == 2007) %>% ggplot(aes(x = gdpPercap , y = lifeExp , col = continent)) + geom_point() + 
+  scale_color_manual(values=c("#7F3B08", "#A50026", "#40004B", "#276419" , "#313695"))
+
+
+
+  
+ 
+```
+No they are not an improvement in my opinion as it makes it much harder to clearly distinguish the different countries from one another, as the colours are way too similar.
+
+
+
+d. 
+Its so impractical as you are colouring by 100s of different countries and you run out of colours so you end up using different shades of colours and it makes it way too hard to tell the countries apart.
+
+e. 
+```{r, fig.width=5, fig.height=4}
+gapminder %>% filter(year == 2007) %>% ggplot(aes(x = gdpPercap , y = lifeExp , col = pop)) + geom_point()  
+
+gapminder %>% filter(year == 2007) %>% ggplot(aes(x = gdpPercap , y = lifeExp , col = pop)) + geom_bin_2d(aes( colour=pop)) +    scale_fill_gradient(low = "yellow", high = "red") 
+  
+```
+The reason i chose this style of graph is that i believe you can see clearer the difference in pop sizes as oppose to the scatter plot as they are a lot more clumped together and you cant really see which dots are what color but in the new graph its obvious which ones are dark and which ones are light which aids in the visualisation aspect an its easy to make out the scale of the population when compared to the default scale which was hard to understand.
+
+
+## Question 3
+
+
+
+a. 
+It tells us how much the life expectancy has increased in each of these countries from 1952 to 2007
+
+b. Write code to reconstruct this graph.
+
+```{r, }
+df <- gapminder %>%
+  filter(year %in% c(1952,2007)) %>%
+  filter(continent=="Europe") 
+df <- df %>%
+  mutate(paired = rep(1:(n()/2),each=2),
+         year=factor(year))
+df %>% 
+  ggplot(aes(x= lifeExp, y= reorder(country,lifeExp , max))) +
+  geom_line(aes(group = paired) , colour = ifelse(df$country %in% 'Ireland' ,'green' , 'yellow') )+
+    geom_point(aes(color=year)) +
+  labs(y = NULL ,  color = "yr")
+
+
+
+```
+

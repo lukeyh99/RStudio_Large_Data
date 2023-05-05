@@ -1,0 +1,243 @@
+---
+title: "St306 assignment 4"
+output: html_document
+date: '2022-04-04'
+---
+
+Question 1:
+a.
+```{r}
+library(tsibbledata)
+library(utils)
+library(fpp3)
+library(feasts)
+library(forecast)
+library(fable)
+global_economy
+switz <- global_economy %>% filter(Country == "Switzerland")
+autoplot(switz , .vars = Population)
+```
+b.
+ARIMA(1,1,1) as theres 3 differenced parameters , its order 3 and theres 1 error term.
+```{r}
+fit1 <- switz %>%
+  model(ARIMA(Population)) %>%
+  report(fit1)
+```
+
+c.
+```{r}
+
+switz%>%gg_tsdisplay( y = Population , plot_type = "partial")
+
+##the acf plot gradually decreases and the pacf sharply decreases after p number of lags, as these conditions are true
+##the model that was chosen is accurate.
+```
+d.
+```{r}
+pop1 = 0.0053 + 8.09 + 1.64*(8.09-8.19) - 1.17*(8.19-8.28) + 0.45*(8.28-8.37) 
+pop2 = pop1 + 1.64*(pop1-8.09) - 1.17*(8.09-8.19) + 0.45*(8.19-8.28)
+pop3 = pop2 + 1.64*(pop2-pop1) - 1.17*(pop1-8.09) + 0.45*(8.09-8.19)
+c(pop1, pop2, pop3)
+
+```
+e.
+```{r}
+
+pop_fc <- switz %>% model(ARIMA(Population))
+pop_fc %>% forecast(h=3)
+report(pop_fc)
+```
+
+Question 2:
+a.
+```{r}
+#rm(Hare)
+hare <- pelt %>% select("Year", "Hare")
+pelt %>% select("Year", "Hare") %>% autoplot(.vars=Hare) +
+  labs(title = "Hare Trades") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+b.
+ARIMA(2,0,1)
+```{r}
+fit2 <- pelt %>%
+  model(ARIMA(Hare)) %>%
+  report(fit2)
+```
+
+
+
+c.
+
+```{r}
+gg_tsdisplay(hare,plot_type = "partial")
+##this model is appropriate because the acf and pacf both behave in opposite ways to eachother which indicates the model is appropriate
+```
+.d
+```{r}
+hare1 = 30993 + 19520 + 0.82*(19250-82110) - 0.29*(82110-89760) - 0.01*(89760-81660) - 0.22*(81660-15760)
+hare2 = hare1 + 0.82*(hare1 - 19250) - 0.29*(19250-82110) - 0.01*(82110-89760) - 0.22*(89760-81660)
+hare3 = hare2 + 0.82*(hare2-hare1) - 0.29*(hare1-19250) - 0.01*(19250-82110) - 0.22*(82110-89760)
+c(hare1, hare2, hare3)
+```
+
+e.
+```{r}
+hare_fc <- hare %>% model(ARIMA(Hare))
+hare_fc %>% forecast(h=3)
+report(hare_fc)
+```
+Question 3:
+a.
+```{r}
+df <- us_employment %>% filter(Series_ID == "CEU0500000001") 
+df %>% model(STL(Employed)) %>% components() %>% autoplot()
+```
+b.
+```{r}
+#yes it does need a transformation in this case i took the square root transformation and the seasonality has a more constant mean.
+df %>% model(STL(sqrt(Employed))) %>% components() %>% autoplot()
+```
+c.
+```{r}
+df %>% autoplot(df$Employed)
+#no the data is not stationary as there is an upward trend in the graph,We can difference the data, we differentiate the data and we apply the test again to double check. We have a different result and in this case by differenciating, we have a bigger p-value , so the differenciate data are stationary.
+```
+d.
+```{r}
+df %>% gg_tsdisplay(difference(Employed), plot_type='partial')
+
+us_fit <- df %>%
+  model(arima310 = ARIMA(Employed ~ pdq(3,1,0)),
+        arima210 = ARIMA(Employed ~ pdq(2,1,0)),
+        stepwise = ARIMA(Employed),
+        auto = ARIMA(Employed, stepwise=FALSE))
+report (us_fit)
+```
+
+e.
+```{r}
+fit2 <- df %>%
+  model(ARIMA(Employed)) %>%
+  report
+
+fit2 %>% gg_tsresiduals()
+augment(fit2) %>% features(.innov , ljung_box, lag=10, dof=2)
+#p-value greater than 0.05 meaning we dont have any white noise
+
+```
+
+f.
+```{r}
+ARIMA <- df %>%
+  model(ARIMA(Employed))
+
+ARIMA %>%
+  forecast(h = "3 years") %>%
+  autoplot(us_employment, level = NULL)
+```
+g.
+```{r}
+PI <- ARIMA %>%
+  forecast(h = "3 years") %>%
+  mutate(PI = hilo(Employed, level = 95))
+PI
+#one year forecast will be usuable
+```
+Question 4.
+a.
+```{r}
+Japan <- aus_arrivals %>% filter(Origin == "Japan")
+autoplot(Japan)
+## there is trends in the graph there seems to be a little bit of seasonality
+```
+
+b.
+```{r}
+Japan %>% gg_tsdisplay(difference(Arrivals), plot_type='partial')
+#data is now stationary
+```
+c.
+The peaks tend to 2 lags apart on the positive axis and one lag apart on the negative axis
+other than that theres not much information you can take from this graph as theres too many significant spikes
+
+d.
+its an AR(4) according to the pacf model having four significant spikes
+
+e.
+They suggest an ARMA model as there is lots of significant spikes in both the graphs and the pacf quickly decreases towards zero.
+
+f.
+```{r}
+ARIMA <- Japan %>%
+  model(ARIMA(Arrivals))
+
+ARIMA %>%
+  forecast(h = "3 years") %>%
+  autoplot(Japan, level = NULL)
+
+Japan%>% gg_tsdisplay((Arrivals), plot_type='partial')
+
+
+#The arima model seems to fit a lot better
+```
+g.
+y^t^=phi x y^(t-2)^ + theta x (e-2)
+
+Question 5
+a.
+```{r}
+#install.packages("Quandl")
+y <- Quandl::Quandl("ODA/PBEVE_INDEX") %>%
+  mutate(Month = yearmonth(Date)) %>%
+  as_tsibble(index=Month)
+
+```
+b.
+```{r}
+autoplot(y)
+y%>% gg_tsdisplay(Value, plot_type='partial')
+#its an AR(1) model
+```
+c.
+```{r}
+fit2 <- y %>%
+  model(ARIMA(Value)) %>%
+  report()
+
+fit2 %>% gg_tsresiduals()
+augment(fit2) %>% features(.innov , ljung_box, lag=10, dof=2)
+#p value greater than 0.05 meaning we dont have any white noise
+```
+d.
+```{r}
+ar110 = Arima(y$Value, order = c(1, 1, 0))
+checkresiduals(ar110)
+
+
+f.ar110 = forecast(ar110, h = 4)
+autoplot(f.ar110)
+```
+e.
+```{r}
+y.ets = ets(y$Value)
+summary(y.ets)
+
+autoplot(y.ets)
+```
+
+f.
+```{r}
+checkresiduals(y.ets)
+#close to white noise
+```
+g.
+```{r}
+f.y.ets = forecast(y.ets, h = 4)
+autoplot(f.y.ets)
+```
+
+h.
+I prefer the ARIMA model as theres less of a spread in the forecast meaning that the forecast should theoretically be more accurate.

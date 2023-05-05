@@ -1,0 +1,124 @@
+---
+title: "ST306 Assignment-03"
+output: pdf_document
+date: '2022-03-29'
+---
+Q1
+```{r}
+library(tsibbledata)
+library(forecast)
+library(fable)
+model <- ets(global_economy$GDP[global_economy$Country == "China"] , "ZZZ")
+forecast.ets(model, h = 20)
+```
+
+Q2:
+```{r}
+#a
+model2 <- ets(aus_production$Gas , "MZZ")
+forecast.ets(model2 , h = 5)
+```
+b. Because its nonseasonal data 
+```{r}
+#c
+library(tsibble)
+model3 <- ets(aus_production$Gas , "MZZ" ,damped = TRUE )
+# <- as_mable(df)
+df <- forecast.ets(model3 , h = 5)
+model3
+```
+
+```{r}
+library(feasts)
+#d
+tsibbledata::aus_production %>%
+  model(ETS(Gas)) %>%
+  gg_tsresiduals()
+
+
+```
+Q3:
+```{r}
+#a
+library(utils)
+library(fpp3)
+aus_trips <- tourism %>%
+  summarise(Trips = sum(Trips))
+
+aus_trips %>%
+  autoplot(Trips)
+
+
+```
+There are quite a few outliers in the summer quarters as you can see the graph spikes enourmously at some points and then goes straight back down , as for the majority of the data it remains consistently stationary if you remove all the outliers constant variance and fluctuates around the same mean but seasonality is very influential here as its about overnight trips to an area which will spike in the summer months hence its actually non-stationary.
+
+
+```{r}
+#b
+
+stl_dcmp <- aus_trips %>%
+  model(STL(Trips)) %>% components()
+
+stl_dcmp %>%
+  as_tsibble() %>%
+  autoplot(season_adjust)
+```
+#c
+```{r}
+aus_trips %>%
+ 
+    model(decomposition_model(STL(Trips), ETS(season_adjust ~ error("A") +trend("Ad") +  season("N")))) %>%
+  forecast(h = "2 years") %>%
+  autoplot(aus_trips)
+                        
+
+```
+
+#d
+```{r}
+aus_trips %>%
+ 
+    model(decomposition_model(STL(Trips), ETS(season_adjust ~ error("A") +trend("A") +  season("N")))) %>%
+  forecast(h = "2 years") %>%
+  autoplot(aus_trips)
+```
+
+#e
+```{r}
+aus_trips %>%
+ 
+    model(ETS(Trips)) %>%
+  forecast(h = "2 years") %>%
+  autoplot(aus_trips)
+```
+#f
+```{r}
+#comparing RMSE of the ETS model and RMSE of models previous models using STL decomposition
+fit <- aus_trips %>% model(STL_1 = decomposition_model(STL(Trips) ,ETS(season_adjust ~ error("A")+
+                                                                         trend("Ad")+
+                                                                         season("N"))),
+                           
+               STL_2 = decomposition_model(STL(Trips) ,ETS(season_adjust ~ error("A")+
+                                                                         trend("A")+
+                                                                         season("N"))), ETS = ETS(Trips)            )
+
+```
+
+#g
+```{r}
+#comparing forecast from the three approaches
+fit %>% forecast(h = "2 years") %>% autoplot(aus_trips , level = NULL) + guides(colour = guide_legend(title = "Forecast"))
+
+##they all look pretty similar to me at a glance but based of the numbers the model with the smallest RMSE value is most likely to be the best fit
+#which in this case would be STL_2
+
+```
+#h
+```{r}
+#check residuals of the model
+new_model <- fit %>% select(STL_2)
+new_model %>% gg_tsresiduals()
+```
+#Q5
+#a
+
